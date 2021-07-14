@@ -9,9 +9,9 @@ class Base(Document):
     body = Text()
     title = Keyword()
     publish_time = Date()
-    url = Keyword()
-    journal = Keyword()
-    authors = Keyword()
+    url = Text(fields={"keyword": Keyword(ignore_above=256)})
+    journal = Text(fields={"keyword": Keyword(ignore_above=256)})
+    authors = Text(fields={"keyword": Keyword(ignore_above=256)})
 
 
 class Paper(Base):

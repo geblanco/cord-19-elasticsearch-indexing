@@ -4,4 +4,4 @@ Description=CORD-19 data update service
 [Service]
 Type=oneshot
 StandardOutput=null
-ExecStart=/usr/bin/covid_data_update %h
+ExecStart=/usr/bin/covid_data_update /data/qaservers

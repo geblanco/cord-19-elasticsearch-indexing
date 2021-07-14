@@ -7,8 +7,9 @@ import tarfile
 import requests
 import argparse
 
-from tqdm import tqdm
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+from pathlib import Path
 from urllib.request import urlretrieve
 
 from indexing.preprocessing.fix_dates import fix_dates
@@ -63,7 +64,7 @@ def get_parser():
 def parse_flags():
     parser = get_parser()
     args = parser.parse_args()
-    if args.date is None and not parser.scrape_latest:
+    if args.date is None and not args.scrape_latest:
         raise ValueError(
             "You must either scrape latest release or provide a date!"
         )
@@ -77,7 +78,7 @@ def scrape_latest():
     if r.status_code != 200:
         raise RuntimeError("Unable to scrape ai2 index page!")
 
-    soup = BeautifulSoup(r.content, "html_parser")
+    soup = BeautifulSoup(r.content, "html.parser")
     infos = [i.find_all(text=True)[0] for i in soup.find_all("i")]
     latest = [i for i in infos if "latest release:" in i.lower()][0]
     date = latest.split(":")[-1].strip()
@@ -95,7 +96,11 @@ def download_url(url, save_dir):
     bar = TqdmUpTo(
         unit="B", unit_scale=True, unit_divisor=1024, miniters=1, desc=filename
     )
-    filename_path = os.path.join(save_dir, filename)
+    save_dir = Path(save_dir)
+    if not save_dir.exists():
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    filename_path = str(save_dir.joinpath(filename))
     with bar as t:
         urlretrieve(url, filename=filename_path, reporthook=t.update_to)
 
@@ -151,7 +156,7 @@ def main(args):
         print("Must specify --all or one of {--download, --index}.")
     else:
         date = args.date
-        if (args.all or args.download) and args.scrape_latest:
+        if args.scrape_latest:
             date = scrape_latest()
 
         if args.all or args.download:
@@ -169,7 +174,7 @@ def main(args):
                 download_collection(date)
 
         if args.all or args.index:
-            build_indexes(date)
+            build_indexes(date, args)
 
 
 if __name__ == "__main__":
