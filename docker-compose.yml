@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  elastic-search:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.1
+    environment:
+      - "discovery.type=single-node"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data11:/usr/share/elasticsearch/data
+    ports:
+      - '9201:9200'
+      - '9301:9300'
+
+# networks:
+#   default:
+#     external: true
+#     name: spark_network
+volumes:
+  data11:
+    driver: local

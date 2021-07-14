@@ -1,0 +1,31 @@
+# Elastic Search
+Elasticsearch Indexing Data Flow. How docs get into the cluster | by Steve Mushero | The Startup | Medium
+https://medium.com/swlh/elasticsearch-indexing-data-flow-d56ea14e1772
+
+503 Service Unavailable
+https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables
+
+503 Service Unavailable
+https://www.elastic.co/blog/practical-bm25-part-1-how-shards-affect-relevance-scoring-in-elasticsearch
+
+Improved Text Scoring with BM25 | Elastic
+https://www.elastic.co/elasticon/conf/2016/sf/improved-text-scoring-with-bm25
+
+bm25_intro
+http://ethen8181.github.io/machine-learning/search/bm25_intro.html
+
+Multi search API | Elasticsearch Guide [7.13] | Elastic
+https://www.elastic.co/guide/en/elasticsearch/reference/current/search-multi-search.html
+
+# Cord-19 (& ES)
+johnantonn/cord-19: COVID-19 Open Research Dataset Challenge (CORD-19)
+https://github.com/johnantonn/cord-19
+
+Elasticsearch for analyzing CORD-19 dataset - Can-eHealth
+https://canehealth.com/2020/04/elasticsearch-for-analyzing-cord-19-dataset/
+
+text similarity cord-19.ipynb - Colaboratory
+https://colab.research.google.com/github/dair-ai/covid_19_search_application/blob/master/text_similarity_cord_19.ipynb#scrollTo=3WsUI7q-_GAZ
+
+CoronaXiv: The AI-powered ElasticSearch-based Search Engine for Covid-19 Research Papers | by Arghyadeep Das | Towards Data Science
+https://towardsdatascience.com/coronaxiv-b2b36d725e2e

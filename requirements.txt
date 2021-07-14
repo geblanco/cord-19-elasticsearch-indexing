@@ -1,0 +1,7 @@
+tqdm
+# pandas
+# pyspark
+requests
+beautifulsoup4
+elasticsearch
+elasticsearch_dsl

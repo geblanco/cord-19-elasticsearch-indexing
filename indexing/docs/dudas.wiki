@@ -1,0 +1,3 @@
+= Dudas indexado CORD =
+* Que hacer con los artículos que solo tienen resumen pero no texto
+* Que hacer con los artículos sin resumen
