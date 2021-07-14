@@ -8,7 +8,7 @@ PREFIX  ?= $(DESTDIR)/usr
 SYSTEMD_DIR = $(HOME)/.config/systemd/user
 
 BIN_PATH = $(PREFIX)/bin
-PATH_EXEC = ${BIN_PATH}/gpu_stats
+PATH_EXEC = ${BIN_PATH}/covid_data_update
 INFO_EXEC = ${BIN_PATH}/gpu_info.py
 
 #
@@ -19,25 +19,25 @@ all:
 	@echo "Nothing to do"
 
 install:
-	@echo "sudo ${INSTALL} -m0755 -D gpu_stats.sh ${PATH_EXEC}"
-	$(shell sudo ${INSTALL} -m0755 -D gpu_stats.sh ${PATH_EXEC})
+	@echo "sudo ${INSTALL} -m0755 -D covid_data_update.sh ${PATH_EXEC}"
+	$(shell sudo ${INSTALL} -m0755 -D covid_data_update.sh ${PATH_EXEC})
 	@echo "sudo ${INSTALL} -m0755 -D gpu_info.py ${INFO_EXEC}"
 	$(shell sudo ${INSTALL} -m0755 -D gpu_info.py ${INFO_EXEC})
-	$(INSTALL) -m0644 -D gpu_stats.service $(SYSTEMD_DIR)/gpu_stats.service
-	$(INSTALL) -m0644 -D gpu_stats.timer $(SYSTEMD_DIR)/gpu_stats.timer
-	systemctl --user enable gpu_stats.service
-	systemctl --user enable gpu_stats.timer
-	systemctl --user start gpu_stats.timer
+	$(INSTALL) -m0644 -D covid_data_update.service $(SYSTEMD_DIR)/covid_data_update.service
+	$(INSTALL) -m0644 -D covid_data_update.timer $(SYSTEMD_DIR)/covid_data_update.timer
+	systemctl --user enable covid_data_update.service
+	systemctl --user enable covid_data_update.timer
+	systemctl --user start covid_data_update.timer
 
 uninstall:
 	@echo "sudo rm ${PATH_EXEC}"
 	$(shell sudo rm ${PATH_EXEC})
 	@echo "sudo rm ${INFO_EXEC}"
 	$(shell sudo rm ${INFO_EXEC})
-	systemctl --user disable gpu_stats.service
-	systemctl --user stop gpu_stats.timer
-	systemctl --user disable gpu_stats.timer
-	rm $(SYSTEMD_DIR)/gpu_stats.service
-	rm $(SYSTEMD_DIR)/gpu_stats.timer
+	systemctl --user disable covid_data_update.service
+	systemctl --user stop covid_data_update.timer
+	systemctl --user disable covid_data_update.timer
+	rm $(SYSTEMD_DIR)/covid_data_update.service
+	rm $(SYSTEMD_DIR)/covid_data_update.timer
 
 .PHONY: all install uninstall
