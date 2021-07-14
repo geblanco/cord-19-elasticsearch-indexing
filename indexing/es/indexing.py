@@ -1,23 +1,26 @@
-from elasticsearch_dsl import Text, Keyword, Document, Index
+from elasticsearch_dsl import Text, Keyword, Document, Index, Date
 
 
 index_settings = {"similarity": {"default": {"type": "BM25"}}}
 
 
-class Paper(Document):
+class Base(Document):
     cord_uid = Keyword()
     body = Text()
     title = Keyword()
+    publish_time = Date()
+    url = Keyword()
+    journal = Keyword()
+    authors = Keyword()
 
+
+class Paper(Base):
     class Index:
         name = "papers"
         settings = index_settings
 
 
-class Paper_with_abs(Document):
-    cord_uid = Keyword()
-    body = Text()
-    title = Keyword()
+class Paper_with_abs(Base):
     abstract = Text()
 
     class Index:
@@ -25,34 +28,24 @@ class Paper_with_abs(Document):
         settings = index_settings
 
 
-class Paragraph(Document):
-    cord_uid = Keyword()
+class Paragraph(Base):
     paragraph_id = Keyword()
-    body = Text()
-    title = Keyword()
 
     class Index:
         name = "paragraphs"
         settings = index_settings
 
 
-class Paragraph_with_abs(Document):
-    cord_uid = Keyword()
-    paragraph_id = Keyword()
-    body = Text()
-    title = Keyword()
+class Paragraph_with_abs(Base):
     abstract = Text()
+    paragraph_id = Keyword()
 
     class Index:
         name = "paragraphs"
         settings = index_settings
 
 
-class Abstract(Document):
-    cord_uid = Keyword()
-    body = Text()
-    title = Keyword()
-
+class Abstract(Base):
     class Index:
         name = "abstracts"
         settings = index_settings
