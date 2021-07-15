@@ -121,6 +121,38 @@ def abstract_from_row(row):
     return Abstract(**params)
 
 
+def filter_by_kwords(row, text=""):
+    keywords = [
+        'coronavirus 2019',
+        'coronavirus disease 19',
+        'cov2',
+        'cov-2',
+        'covid',
+        'ncov 2019',
+        '2019ncov',
+        '2019-ncov',
+        '2019 ncov',
+        'novel coronavirus',
+        'sarscov2',
+        'sars-cov-2',
+        'sars cov 2',
+        'severe acute respiratory syndrome coronavirus 2',
+        'wuhan coronavirus',
+        'wuhan pneumonia',
+        'wuhan virus'
+    ]
+
+    title = row["title"].strip()
+    abstract = row["abstract"].strip()
+    ret = False
+    for kw in keywords:        
+        if kw in title.lower() or kw in abstract.lower() or kw in text.lower():
+            ret = True
+            break
+
+    return ret
+
+
 def process_paper(base_dir, row, incl_abs, batch):
     counts = defaultdict(int)
     full_text = ""
@@ -154,22 +186,23 @@ def process_paper(base_dir, row, incl_abs, batch):
         counts["papers_without_file"] += 1
 
     full_text = full_text.strip()
-    if full_text != "":
-        batch["papers"].append(paper_from_row(row, full_text, incl_abs))
-    elif incl_abs:
-        # include article in "papers" and "paragraphs" indices even if it has no body text
-        batch["papers"].append(paper_from_row(row, "", incl_abs))
-        batch["paragraphs"].append(paragraph_from_row(row, 0, "", incl_abs))
-        counts["papers_without_body"] += 1
+    if filter_by_kwords(row, full_text):
+        if full_text != "":
+            batch["papers"].append(paper_from_row(row, full_text, incl_abs))
+        elif incl_abs:
+            # include article in "papers" and "paragraphs" indices even if it has no body text
+            batch["papers"].append(paper_from_row(row, "", incl_abs))
+            batch["paragraphs"].append(paragraph_from_row(row, 0, "", incl_abs))
+            counts["papers_without_body"] += 1
 
-    if not incl_abs:
-        if row["abstract"].strip() == "":
-            counts["papers_without_abstract"] += 1
-        else:
-            batch["abstracts"].append(abstract_from_row(row))
+        if not incl_abs:
+            if row["abstract"].strip() == "":
+                counts["papers_without_abstract"] += 1
+            else:
+                batch["abstracts"].append(abstract_from_row(row))
 
-    if len(paragraphs):
-        batch["paragraphs"].extend(paragraphs)
+        if len(paragraphs):
+            batch["paragraphs"].extend(paragraphs)
 
     return batch, counts
 
