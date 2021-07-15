@@ -156,7 +156,10 @@ def process_paper(base_dir, row, incl_abs, batch):
     full_text = full_text.strip()
     if full_text != "":
         batch["papers"].append(paper_from_row(row, full_text, incl_abs))
-    else:
+    elif incl_abs:
+        # include article in "papers" and "paragraphs" indices even if it has no body text
+        batch["papers"].append(paper_from_row(row, "", incl_abs))
+        batch["paragraphs"].append(paragraph_from_row(row, 0, "", incl_abs))
         counts["papers_without_body"] += 1
 
     if not incl_abs:
