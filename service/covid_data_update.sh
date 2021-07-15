@@ -18,4 +18,5 @@ python dl_cord19.py \
   --index \
   -a 0.0.0.0 \
   -p 9200 \
-  --batch_size 50
+  --batch_size 50 \
+  --incl_abs
