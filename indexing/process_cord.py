@@ -262,7 +262,8 @@ def process_metadata(
         else:
             # change uid, next different paper
             # move to batch
-            for key, value in last_uid[uid].items():
+            row_data = list(last_uid.values())[0]
+            for key, value in row_data.items():
                 batch[key].extend(value)
 
             # check if batch full
