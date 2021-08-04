@@ -192,9 +192,10 @@ def process_paper_body(row, json_path, incl_abs):
             part_text = part["text"].strip()
             if part_text != "":
                 full_text += part_text + "\n"
-                part = paragraph_from_row(row, part_idx, part_text, incl_abs)
-                if filter_by_kwords(text=part):
-                    samples.append(part)
+                if filter_by_kwords(text=part_text):
+                    samples.append(
+                        paragraph_from_row(row, part_idx, part_text, incl_abs)
+                    )
 
     return full_text.strip(), samples
 
@@ -283,6 +284,7 @@ def parse_data_version(data_name):
 def save_data_version(data_version):
     version = Version(version=data_version)
     version.save()
+    print(f"Saved data version as: {version.version}")
 
 
 def main(metadata, data_dir, address, port, incl_abs, batch_size):
