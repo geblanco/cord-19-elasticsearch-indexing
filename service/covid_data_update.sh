@@ -25,7 +25,7 @@ index_data(){
 
 start_instance(){
   cd $1;
-  docker-compose up elastic-search -d
+  docker-compose up -d
 }
 
 clean_instance(){
@@ -47,6 +47,7 @@ clone_volume(){
   docker run --rm -i -t -v $1:/from -v $2:/to alpine ash -c "cd /from ; cp -av . /to"
 }
 
+clean_instance $work_dir $src_volume
 start_instance $work_dir
 index_data $work_dir
 clean_instance $base_dir $dst_volume
