@@ -157,26 +157,39 @@ def filter_by_kwords(row=None, text=""):
     return ret
 
 
+def get_part_len_from_row_data(row_data, part, incl_abs):
+    if part == "abstract" and not incl_abs:
+        if (
+            row_data.get("abstracts") is not None and
+            len(row_data.get("abstracts")) > 0
+        ):
+            part_value = row_data.get("abstracts")[0].body
+    elif part == "paragraphs":
+        part_value = row_data.get(part, [])
+    else:
+        if (
+            row_data.get("papers") is not None and
+            len(row_data.get("papers")) > 0
+        ):
+            part_value = row_data.get("papers")[0][part]
+        else:
+            part_value = ""
+    return len(part_value)
+
+
 def deduplicate(orig, new, incl_abs):
     # keep the longest data, order:
     # - longest abstract
     # - longest paper body
     # - data with more paragraphs
     # - else: first
-    orig_lens = []
-    new_lens = []
-    if not incl_abs:
-        orig_lens.append(len(orig["abstracts"][0]))
-        new_lens.append(len(new["abstracts"][0]))
-    else:
-        orig_lens.append(len(orig["papers"][0].abstract))
-        new_lens.append(len(new["papers"][0].abstract))
-
-    orig_lens.extend([len(orig["papers"][0].body), len(orig["paragraphs"])])
-    new_lens.extend([len(new["papers"][0].body), len(new["paragraphs"])])
-    for orig_l, new_l in zip(orig_lens, new_lens):
-        if orig_l != new_l:
-            ret = orig if orig_l > new_l else new
+    ret = orig
+    parts = ["abstract", "body", "paragraphs"]
+    for pa in parts:
+        orig_pa_len = get_part_len_from_row_data(orig, pa, incl_abs)
+        new_pa_len = get_part_len_from_row_data(new, pa, incl_abs)
+        if orig_pa_len != new_pa_len:
+            ret = orig if orig_pa_len > new_pa_len else new
             break
 
     return ret
