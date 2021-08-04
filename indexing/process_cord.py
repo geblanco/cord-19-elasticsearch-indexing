@@ -289,13 +289,13 @@ def main(metadata, data_dir, address, port, incl_abs, batch_size):
     es = get_connection(address, port)
     init_index(incl_abs)
 
+    data_dir = Path(data_dir)
     data_version = parse_data_version(data_dir.name)
     if data_version is None:
         print("Warning: Unable to get data version!\nNot saving to database")
     else:
         save_data_version(data_version)
 
-    data_dir = Path(data_dir)
     if metadata is None:
         metadata = data_dir.joinpath("metadata.csv")
     process_metadata(es, str(data_dir), metadata, incl_abs, batch_size)
