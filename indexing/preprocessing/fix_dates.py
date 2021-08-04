@@ -4,7 +4,7 @@ import pandas as pd
 import argparse
 
 sys.path.append(os.path.dirname(__file__))
-from CSVProcessor import CSVProcessor
+from CSVProcessor import CSVProcessor  # noqa: E402
 
 
 def fix_dates(input_csv, output_csv):
@@ -31,4 +31,3 @@ if __name__ == "__main__":
         sys.exit(1)
 
     fix_dates(args.input_csv, args.output_csv)
-

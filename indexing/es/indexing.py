@@ -51,6 +51,13 @@ class Abstract(Base):
         settings = index_settings
 
 
+class Version(Document):
+    version = Date()
+
+    class Index:
+        name = "cord_version"
+
+
 index_map = {
     "papers": Paper,
     "paragraphs": Paragraph,
@@ -70,6 +77,8 @@ def init_index(with_abs=False):
     for name, index in index_dict.items():
         if not Index(name).exists():
             index.init()
+
+    Version.init()
 
 
 """

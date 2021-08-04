@@ -73,7 +73,7 @@ def parse_flags():
 
 
 def scrape_latest():
-    base_url = "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases.html"
+    base_url = "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases.html"  # noqa: E501
     r = requests.get(base_url, allow_redirects=True)
     if r.status_code != 200:
         raise RuntimeError("Unable to scrape ai2 index page!")

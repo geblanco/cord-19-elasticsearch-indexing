@@ -10,15 +10,16 @@ from collections import defaultdict
 from elasticsearch.helpers import bulk
 
 sys.path.append(os.path.dirname(__file__))
-from es.indexing import (
+from es.indexing import (   # noqa: E402
     init_index,
     Paper,
     Paper_with_abs,
     Paragraph,
     Paragraph_with_abs,
     Abstract,
+    Version,
 )
-from es.es_connector import get_connection
+from es.es_connector import get_connection  # noqa: E402
 
 
 def get_parser(parser=None, requires=True):
@@ -121,31 +122,34 @@ def abstract_from_row(row):
     return Abstract(**params)
 
 
-def filter_by_kwords(row, text=""):
+def filter_by_kwords(row=None, text=""):
     keywords = [
-        'coronavirus 2019',
-        'coronavirus disease 19',
-        'cov2',
-        'cov-2',
-        'covid',
-        'ncov 2019',
-        '2019ncov',
-        '2019-ncov',
-        '2019 ncov',
-        'novel coronavirus',
-        'sarscov2',
-        'sars-cov-2',
-        'sars cov 2',
-        'severe acute respiratory syndrome coronavirus 2',
-        'wuhan coronavirus',
-        'wuhan pneumonia',
-        'wuhan virus'
+        "coronavirus 2019",
+        "coronavirus disease 19",
+        "cov2",
+        "cov-2",
+        "covid",
+        "ncov 2019",
+        "2019ncov",
+        "2019-ncov",
+        "2019 ncov",
+        "novel coronavirus",
+        "sarscov2",
+        "sars-cov-2",
+        "sars cov 2",
+        "severe acute respiratory syndrome coronavirus 2",
+        "wuhan coronavirus",
+        "wuhan pneumonia",
+        "wuhan virus"
     ]
 
-    title = row["title"].strip()
-    abstract = row["abstract"].strip()
     ret = False
-    for kw in keywords:        
+    title, abstract = "", ""
+    if row is not None:
+        title = row["title"].strip()
+        abstract = row["abstract"].strip()
+
+    for kw in keywords:
         if kw in title.lower() or kw in abstract.lower() or kw in text.lower():
             ret = True
             break
@@ -153,58 +157,87 @@ def filter_by_kwords(row, text=""):
     return ret
 
 
-def process_paper(base_dir, row, incl_abs, batch):
-    counts = defaultdict(int)
+def deduplicate(orig, new, incl_abs):
+    # keep the longest data, order:
+    # - longest abstract
+    # - longest paper body
+    # - data with more paragraphs
+    # - else: first
+    orig_lens = []
+    new_lens = []
+    if incl_abs:
+        orig_lens.append(len(orig["abstracts"][0]))
+        new_lens.append(len(new["abstracts"][0]))
+    else:
+        orig_lens.append(len(orig["papers"][0].abstract))
+        new_lens.append(len(new["papers"][0].abstract))
+
+    orig_lens.extend([len(orig["papers"][0].body), len(orig["paragraphs"])])
+    new_lens.extend([len(new["papers"][0].body), len(new["paragraphs"])])
+    for orig_l, new_l in zip(orig_lens, new_lens):
+        if orig_l != new_l:
+            ret = orig if orig_l > new_l else new
+            break
+
+    return ret
+
+
+def process_paper_body(row, json_path, incl_abs):
+    full_text = ""
+    samples = []
+    full_text_dict = json.load(open(json_path, "r"))
+    body_text = full_text_dict["body_text"]
+    if len(body_text):
+        for part_idx, part in enumerate(body_text):
+            part_text = part["text"].strip()
+            if part_text != "":
+                full_text += part_text + "\n"
+                part = paragraph_from_row(row, part_idx, part_text, incl_abs)
+                if filter_by_kwords(text=part):
+                    samples.append(part)
+
+    return full_text.strip(), samples
+
+
+def process_paper(base_dir, row, incl_abs):
+    batch = defaultdict(list)
     full_text = ""
     paragraphs = []
 
     # print(f"Processing {cord_uid}")
     # prefer pmc files
-    field = row.get("pmc_json_files", row.get("pdf_json_files", None))
-    if field is not None:
-        for json_path in field.split("; "):
-            json_path = base_dir.joinpath(json_path)
-            if not json_path.exists() or not json_path.is_file():
-                counts["enoent_files"] += 1
-                continue
+    field = row.get("pmc_json_files", row.get("pdf_json_files", ""))
+    for json_path in [pa for pa in field.split("; ") if pa.strip() != ""]:
+        json_path = base_dir.joinpath(json_path)
+        if not json_path.exists() or not json_path.is_file():
+            # pdf file does not exist
+            continue
 
-            full_text_dict = json.load(open(json_path, "r"))
-            body_text = full_text_dict["body_text"]
-            if len(body_text):
-                for part_idx, part in enumerate(body_text):
-                    part_text = part["text"].strip()
-                    if part_text != "":
-                        full_text += part_text + "\n"
-                        par_sample = paragraph_from_row(
-                            row, part_idx, part_text, incl_abs
-                        )
-                        paragraphs.append(par_sample)
-
-                # found, dont search for other versions of the paper
-                break
-    else:
-        counts["papers_without_file"] += 1
-
-    full_text = full_text.strip()
-    if filter_by_kwords(row, full_text):
+        full_text, samples = process_paper_body(row, json_path, incl_abs)
         if full_text != "":
-            batch["papers"].append(paper_from_row(row, full_text, incl_abs))
-        elif incl_abs:
-            # include article in "papers" and "paragraphs" indices even if it has no body text
-            batch["papers"].append(paper_from_row(row, "", incl_abs))
-            batch["paragraphs"].append(paragraph_from_row(row, 0, "", incl_abs))
-            counts["papers_without_body"] += 1
+            paragraphs.extend(samples)
+            # found, dont search for other versions of the paper
+            break
 
-        if not incl_abs:
-            if row["abstract"].strip() == "":
-                counts["papers_without_abstract"] += 1
-            else:
-                batch["abstracts"].append(abstract_from_row(row))
+    # else paper without file
+    full_text = full_text.strip()
+    if full_text != "" and filter_by_kwords(text=full_text):
+        batch["papers"].append(paper_from_row(row, full_text, incl_abs))
+        # paragraphs will be empty if paper without body
+        batch["paragraphs"].extend(paragraphs)
+    elif incl_abs and filter_by_kwords(row=row):
+        # include article in "papers" and "paragraphs" indices,
+        # even if it has no body text
+        # another paper without body
+        batch["papers"].append(paper_from_row(row, "", incl_abs))
+        batch["paragraphs"].append(paragraph_from_row(row, 0, "", incl_abs))
 
-        if len(paragraphs):
-            batch["paragraphs"].extend(paragraphs)
+    if not incl_abs:
+        if row["abstract"].strip() != "" and filter_by_kwords(row=row):
+            batch["abstracts"].append(abstract_from_row(row))
+        # paper without abstracts
 
-    return batch, counts
+    return batch
 
 
 def process_metadata(
@@ -214,36 +247,58 @@ def process_metadata(
     reader = csv.DictReader(open(meta_path, "r"))
     total = file_len(meta_path)
     batch = defaultdict(list)
-    counts = defaultdict(int)
-    count_extras = ["papers", "paragraphs"]
-    if incl_abs:
-        count_extras += ["abstracts"]
+    # duplicates are usually contiguous
+    last_uid = None
 
     print(f"Processing metadata from: {meta_path}")
     for row in tqdm(reader, total=total, desc="Reading metadata"):
-        batch, next_counts = process_paper(base_dir, row, incl_abs, batch)
-        for key, val in next_counts.items():
-            counts[key] += val
+        row_data = process_paper(base_dir, row, incl_abs)
+        uid = row["cord_uid"].strip()
+        if last_uid is None:
+            last_uid = {uid: row_data}
+        elif uid in last_uid:
+            last_uid[uid] = deduplicate(last_uid[uid], row_data, incl_abs)
+        else:
+            # change uid, next different paper
+            # move to batch
+            for key, value in last_uid[uid].items():
+                batch[key].extend(value)
 
-        if len(batch["papers"]) >= batch_size:
-            for key in count_extras:
-                counts[key] += len(batch[key])
-            bulk_save(es_conn, batch)
-            batch = defaultdict(list)
+            # check if batch full
+            if len(batch["papers"]) >= batch_size:
+                bulk_save(es_conn, batch)
+                batch = defaultdict(list)
 
-    for key, value in counts.items():
-        key_name = key.split("_")
-        key_name[0] = key_name[0].capitalize()
-        key_name = " ".join(key_name)
-        print("{}: {}".format(key_name, value))
+            last_uid = {uid: row_data}
+
+
+def parse_data_version(data_name):
+    ret = None
+    date = data_name.split("-")[1:]
+    if len(date) == 3:
+        ret = "-".join(date)
+    return ret
+
+
+def save_data_version(data_version):
+    version = Version(version=data_version)
+    version.save()
 
 
 def main(metadata, data_dir, address, port, incl_abs, batch_size):
     es = get_connection(address, port)
     init_index(incl_abs)
+
+    data_version = parse_data_version(data_dir.name)
+    if data_version is None:
+        print("Warning: Unable to get data version!\nNot saving to database")
+    else:
+        save_data_version(data_version)
+
+    data_dir = Path(data_dir)
     if metadata is None:
-        metadata = Path(data_dir).joinpath("metadata.csv")
-    process_metadata(es, data_dir, metadata, incl_abs, batch_size)
+        metadata = data_dir.joinpath("metadata.csv")
+    process_metadata(es, str(data_dir), metadata, incl_abs, batch_size)
 
 
 if __name__ == "__main__":
