@@ -165,7 +165,7 @@ def deduplicate(orig, new, incl_abs):
     # - else: first
     orig_lens = []
     new_lens = []
-    if incl_abs:
+    if not incl_abs:
         orig_lens.append(len(orig["abstracts"][0]))
         new_lens.append(len(new["abstracts"][0]))
     else:
