@@ -2,8 +2,8 @@
 
 base_dir="${1:-$HOME}"
 work_dir="${base_dir}/cord-19-elasticsearch-indexing"
-src_volume="$(basename work_dir)_data11"
-dst_volume="$(basename base_dir)_data01"
+src_volume="$(basename $work_dir)_data11"
+dst_volume="$(basename $base_dir)_data01"
 
 index_data(){
   local dir=$1
