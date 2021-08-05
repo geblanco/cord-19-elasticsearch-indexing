@@ -44,11 +44,14 @@ clean_instance(){
 clone_volume(){
   # taken from docker_clone_volume.sh
   echo "Copying data from source volume \"$1\" to destination volume \"$2\"..."
-  docker run --rm -i -t -v $1:/from -v $2:/to alpine ash -c "cd /from ; cp -av . /to"
+  docker run --rm -v $1:/from -v $2:/to alpine ash -c "cd /from ; cp -av . /to"
 }
 
 clean_instance $work_dir $src_volume
 start_instance $work_dir
+
+# No errors allowed from here
+set -e
 index_data $work_dir
 clean_instance $base_dir $dst_volume
 clone_volume $src_volume $dst_volume
