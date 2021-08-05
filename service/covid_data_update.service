@@ -3,5 +3,6 @@ Description=CORD-19 data update service
 
 [Service]
 Type=oneshot
-# StandardOutput=null
+Environment="PYTHONPATH=$PYTHONPATH:/home/gblanco/.local/lib/python3.8/site-packages"
+Environment="PATH=$PATH:/home/gblanco/.local/bin"
 ExecStart=/usr/bin/covid_data_update /data/qaservers
