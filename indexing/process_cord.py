@@ -1,8 +1,8 @@
 import os
 import sys
-import csv
 import json
 import argparse
+import pandas as pd
 
 from tqdm import tqdm
 from pathlib import Path
@@ -67,13 +67,6 @@ def flatten(array):
         else:
             ret.extend(flatten(el))
     return ret
-
-
-def file_len(fname):
-    with open(fname) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
 
 
 def bulk_save(es_conn, batch):
@@ -258,33 +251,40 @@ def process_metadata(
     es_conn, base_dir, meta_path, incl_abs=False, batch_size=100
 ):
     base_dir = Path(base_dir)
-    reader = csv.DictReader(open(meta_path, "r"))
-    total = file_len(meta_path)
     batch = defaultdict(list)
-    # duplicates are usually contiguous
-    last_uid = None
+    df = pd.read_csv(meta_path)
+    total = len(df)
+    data = df.groupby("cord_uid")
 
     print(f"Processing metadata from: {meta_path}")
-    for row in tqdm(reader, total=total, desc="Reading metadata"):
-        row_data = process_paper(base_dir, row, incl_abs)
-        uid = row["cord_uid"].strip()
-        if last_uid is None:
-            last_uid = {uid: row_data}
-        elif uid in last_uid:
-            last_uid[uid] = deduplicate(last_uid[uid], row_data, incl_abs)
-        else:
-            # change uid, next different paper
-            # move to batch
-            row_data = list(last_uid.values())[0]
-            for key, value in row_data.items():
+    for _, df_group in tqdm(data, total=total, desc="Reading metadata"):
+        final_row_data = None
+        row_data = []
+        for _, df_row in df_group.iterrows():
+            row = df_row.to_dict()
+            row_data.append(process_paper(base_dir, row, incl_abs))
+
+        if len(row_data) == 1:
+            final_row_data = row_data[0]
+        elif len(row_data) > 1:
+            final_row_data = row_data[0]
+            for i in range(1, len(row_data)):
+                final_row_data = deduplicate(
+                    final_row_data, row_data[i], incl_abs
+                )
+
+        if final_row_data is not None:
+            for key, value in final_row_data.items():
                 batch[key].extend(value)
 
-            # check if batch full
-            if len(batch["papers"]) >= batch_size:
-                bulk_save(es_conn, batch)
-                batch = defaultdict(list)
+        # check if batch full
+        if len(batch["papers"]) >= batch_size:
+            bulk_save(es_conn, batch)
+            batch = defaultdict(list)
 
-            last_uid = {uid: row_data}
+    # save last results
+    if len(batch["papers"]):
+        bulk_save(es_conn, batch)
 
 
 def parse_data_version(data_name):
