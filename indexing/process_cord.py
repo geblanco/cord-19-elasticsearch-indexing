@@ -6,6 +6,7 @@ import pandas as pd
 
 from tqdm import tqdm
 from pathlib import Path
+from functools import partial
 from collections import defaultdict
 from elasticsearch.helpers import bulk
 
@@ -206,7 +207,7 @@ def process_paper_body(row, json_path, incl_abs):
     return full_text.strip(), samples
 
 
-def process_paper(base_dir, row, incl_abs):
+def process_paper(base_dir, incl_abs, row):
     batch = defaultdict(list)
     full_text = ""
     paragraphs = []
@@ -252,29 +253,24 @@ def process_metadata(
 ):
     base_dir = Path(base_dir)
     batch = defaultdict(list)
-    df = pd.read_csv(meta_path)
+    df = pd.read_csv(meta_path).fillna("")
     total = len(df)
     data = df.groupby("cord_uid")
+    processor = partial(process_paper, base_dir, incl_abs)
 
     print(f"Processing metadata from: {meta_path}")
     for _, df_group in tqdm(data, total=total, desc="Reading metadata"):
-        final_row_data = None
-        row_data = []
-        for _, df_row in df_group.iterrows():
-            row = df_row.to_dict()
-            row_data.append(process_paper(base_dir, row, incl_abs))
+        final_row = None
+        row_data = [processor(ro.to_dict()) for _, ro in df_group.iterrows()]
+        if len(row_data) == 0:
+            continue
 
-        if len(row_data) == 1:
-            final_row_data = row_data[0]
-        elif len(row_data) > 1:
-            final_row_data = row_data[0]
-            for i in range(1, len(row_data)):
-                final_row_data = deduplicate(
-                    final_row_data, row_data[i], incl_abs
-                )
+        final_row = row_data[0]
+        for i in range(1, len(row_data)):
+            final_row = deduplicate(final_row, row_data[i], incl_abs)
 
-        if final_row_data is not None:
-            for key, value in final_row_data.items():
+        if final_row is not None:
+            for key, value in final_row.items():
                 batch[key].extend(value)
 
         # check if batch full
