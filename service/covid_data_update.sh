@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH=$PATH:$EXTRA_PATH
+PYTHONPATH=$PYTHONPATH:$EXTRA_PYTHONPATH
 base_dir="${1:-$HOME}"
 work_dir="${base_dir}/cord-19-elasticsearch-indexing"
 src_volume="$(basename $work_dir)_data11"
@@ -44,7 +46,8 @@ clean_instance(){
 clone_volume(){
   # taken from docker_clone_volume.sh
   echo "Copying data from source volume \"$1\" to destination volume \"$2\"..."
-  docker run --rm -v $1:/from -v $2:/to alpine ash -c "cd /from ; cp -av . /to"
+  docker run --rm -v $1:/from -v $2:/to alpine ash -c "cd /from ; cp -av . /to" >/dev/null
+  echo "Done"
 }
 
 clean_instance $work_dir $src_volume
